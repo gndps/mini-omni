@@ -22,9 +22,10 @@ OUT_RATE = 24000
 OUT_CHANNELS = 1
 
 
-def process_audio(audio):
+def process_audio(audio, text):
     filepath = audio
     print(f"filepath: {filepath}")
+    print(f"text: {text}")
     if filepath is None:
         return
 
@@ -33,7 +34,8 @@ def process_audio(audio):
         with open(filepath, "rb") as f:
             data = f.read()
             base64_encoded = str(base64.b64encode(data), encoding="utf-8")
-            files = {"audio": base64_encoded}
+            files = {"audio": base64_encoded,
+                    "text": text}
             tik = time.time()
             with requests.post(API_URL, json=files, stream=True) as response:
                 try:
@@ -65,7 +67,16 @@ def main(port=None):
 
     demo = gr.Interface(
         process_audio,
-        inputs=gr.Audio(type="filepath", label="Microphone"),
+        inputs=[
+            gr.Audio(type="filepath", label="Microphone"),
+            gr.Textbox("""You should act as DP's virtual assistant, which is a company specializing in artificial intelligence powered Customer Communications Platform.
+Here is a list of their products:
+1. AI Agent Assist - Faster answers, self-service, consistent info.
+2. AI Contact Center - Real-time suggestions, improved service, live/post-call.
+3. AI Playbooks - Real-time sales guidance, team alignment, consistent experience.
+4. AI Sales - Transcriptions, coaching, smart responses, performance analytics.
+Please answer customer's following query""", label="Text Input")
+        ],
         outputs=[gr.Audio(label="Response", streaming=True, autoplay=True)],
         title="Chat Mini-Omni Demo",
         live=True,

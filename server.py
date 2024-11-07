@@ -10,6 +10,8 @@ import base64
 import tempfile
 import traceback
 from flask import Flask, Response, stream_with_context
+from pseudo_rag.audio_prompt_helper import get_joined_prompt
+from datetime import datetime
 
 
 class OmniChatServer(object):
@@ -34,13 +36,32 @@ class OmniChatServer(object):
         req_data = flask.request.get_json()
         try:
             data_buf = req_data["audio"].encode("utf-8")
+            prompt = req_data["text"]
             data_buf = base64.b64decode(data_buf)
             stream_stride = req_data.get("stream_stride", 4)
             max_tokens = req_data.get("max_tokens", 2048)
 
+            # Create a timestamped filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_path = f"./user_query_{timestamp}.wav"
+
+            with open(output_path, "wb") as f:
+                f.write(data_buf)
+                print(f"file recorded by user: {output_path}")
+
+            # Write data to a temporary file and to the specific location
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
                 f.write(data_buf)
-                audio_generator = self.client.run_AT_batch_stream(f.name, stream_stride, max_tokens)
+                try:
+                    merge=True
+                    if merge:
+                        joined_prompt = get_joined_prompt(user_query_wav_file=f.name, prompt_text=prompt)
+                        audio_generator = self.client.run_AT_batch_stream(joined_prompt, stream_stride, max_tokens)
+                    else:
+                        audio_generator = self.client.run_AT_batch_stream(f.name, stream_stride, max_tokens)
+                except:
+                    # Prompt too long
+                    print("ERROR: prompt too long")
                 return Response(stream_with_context(audio_generator), mimetype="audio/wav")
         except Exception as e:
             print(traceback.format_exc())

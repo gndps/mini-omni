@@ -52,28 +52,12 @@ _split = audio_vocabsize + 4
 
 
 def get_input_ids_TA(text, text_tokenizer):
-    input_ids_item = [[] for _ in range(8)]
-    text_tokens = text_tokenizer.encode(text)
-    for i in range(7):
-        input_ids_item[i] = [layershift(_pad_a, i)] * (len(text_tokens) + 2) + [
-            layershift(_answer_a, i)
-        ]
-        input_ids_item[i] = torch.tensor(input_ids_item[i]).unsqueeze(0)
-    input_ids_item[-1] = [_input_t] + text_tokens.tolist() + [_eot] + [_answer_t]
-    input_ids_item[-1] = torch.tensor(input_ids_item[-1]).unsqueeze(0)
+    ...
     return input_ids_item
 
 
 def get_input_ids_TT(text, text_tokenizer):
-    input_ids_item = [[] for i in range(8)]
-    text_tokens = text_tokenizer.encode(text).tolist()
-
-    for i in range(7):
-        input_ids_item[i] = torch.tensor(
-            [layershift(_pad_a, i)] * (len(text_tokens) + 3)
-        ).unsqueeze(0)
-    input_ids_item[-1] = [_input_t] + text_tokens + [_eot] + [_answer_t]
-    input_ids_item[-1] = torch.tensor(input_ids_item[-1]).unsqueeze(0)
+    ...
 
     return input_ids_item
 
@@ -107,11 +91,6 @@ def get_input_ids_whisper_ATBatch(mel, leng, whispermodel, device):
         # audio_feature = whisper.decode(whispermodel,mel, options).audio_features
         audio_feature = whispermodel.embed_audio(mel)[0][:leng]
     T = audio_feature.size(0)
-    # print("==================")
-    # print("==================")
-    # print(f'audio feature size = {T}')
-    # print("==================")
-    # print("==================")
     input_ids_AA = []
     for i in range(7):
         input_ids_item = []
@@ -130,13 +109,6 @@ def get_input_ids_whisper_ATBatch(mel, leng, whispermodel, device):
         input_ids_item += [(layershift(_eoa, i)), layershift(_pad_a, i)]
         input_ids_AT.append(torch.tensor(input_ids_item))
     input_id_T = torch.tensor([_input_t] + [_pad_t] * T + [_eot, _answer_t])
-    # print('input_id_T:')
-    # print(input_id_T)
-    # print('-----')
-    # print('input_id_T:')
-    # print(input_id_T)
-    # print('-----')
-    # print(input_ids_AT)
     input_ids_AT.append(input_id_T)
 
     input_ids = [input_ids_AA, input_ids_AT]
@@ -145,12 +117,6 @@ def get_input_ids_whisper_ATBatch(mel, leng, whispermodel, device):
         for j in range(8):
             stacked_inputids[j].append(input_ids[i][j])
     stacked_inputids = [torch.stack(tensors) for tensors in stacked_inputids]
-    # print("torch stack: ---- ")
-    # import numpy as np
-    # print(torch.stack([audio_feature, audio_feature]).shape, np.array(stacked_inputids).shape)
-    # torch.Size([2, 43, 768]) (8, 2, 46)
-    # torch.Size([2, 70, 768]) (8, 2, 73)
-    # print("000000- -----")
     return torch.stack([audio_feature, audio_feature]), stacked_inputids
 
 
@@ -403,7 +369,7 @@ class OmniInference:
 
     @torch.inference_mode()
     def run_AT_batch_stream(self, 
-                            audio_path,
+                            audio_path, 
                             stream_stride=4,
                             max_returned_tokens=2048, 
                             temperature=0.9, 
@@ -519,8 +485,6 @@ class OmniInference:
             index += 1
         text = self.text_tokenizer.decode(torch.tensor(list_output[-1]))
         print(f"text output: {text}")
-        with open("response.txt", 'w') as file:
-            file.write(text)
         model.clear_kv_cache()
         return list_output
 
